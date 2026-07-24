@@ -51,10 +51,12 @@ describe('authentication routes', () => {
     expect(response.body).not.toHaveProperty('passwordHash');
 
     const createData = userRepository.create.mock.calls[0][0].data;
+
     expect(createData.passwordHash).not.toBe('Password123!');
     expect(await bcrypt.compare('Password123!', createData.passwordHash)).toBe(true);
 
     const payload = jwt.verify(response.body.token, process.env.JWT_SECRET!) as jwt.JwtPayload;
+    
     expect(payload.sub).toBe(user.id);
     expect(payload.exp).toBeGreaterThan(payload.iat!);
   });

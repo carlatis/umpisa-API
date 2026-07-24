@@ -47,6 +47,7 @@ usersRouter.get('/', async (_req, res) => {
     }),
     firstUserId(),
   ]);
+
   res.json(users.map((user) => ({ ...user, isProtected: user.id === protectedId })));
 });
 
@@ -55,14 +56,18 @@ usersRouter.get('/:id', async (req, res) => {
     where: { id: req.params.id },
     select: { id: true, name: true, email: true, createdAt: true },
   });
+
   if (!user) return res.status(404).json({ message: 'User not found' });
+
   res.json({ ...user, isProtected: user.id === (await firstUserId()) });
 });
 
 usersRouter.post('/', async (req, res) => {
   const data = createUser.parse(req.body);
+
   if (await db.user.findUnique({ where: { email: data.email } }))
     return res.status(409).json({ message: 'Email already registered' });
+
   const user = await db.user.create({
     data: {
       name: data.name,
@@ -71,6 +76,7 @@ usersRouter.post('/', async (req, res) => {
     },
     select: { id: true, name: true, email: true, createdAt: true },
   });
+
   res.status(201).json({ ...user, isProtected: false });
 });
 
@@ -78,12 +84,14 @@ usersRouter.patch('/:id', async (req, res) => {
   const existing = await db.user.findUnique({ where: { id: req.params.id } });
   if (!existing) return res.status(404).json({ message: 'User not found' });
   const data = updateUser.parse(req.body);
+
   if (
     data.email &&
     data.email !== existing.email &&
     (await db.user.findUnique({ where: { email: data.email } }))
   )
     return res.status(409).json({ message: 'Email already registered' });
+
   const user = await db.user.update({
     where: { id: existing.id },
     data: {
@@ -93,13 +101,17 @@ usersRouter.patch('/:id', async (req, res) => {
     },
     select: { id: true, name: true, email: true, createdAt: true },
   });
+
   res.json({ ...user, isProtected: user.id === (await firstUserId()) });
 });
 
 usersRouter.delete('/:id', async (req, res) => {
   if (req.params.id === (await firstUserId()))
     return res.status(403).json({ message: 'The first user cannot be deleted' });
+
   const result = await db.user.deleteMany({ where: { id: req.params.id } });
+
   if (!result.count) return res.status(404).json({ message: 'User not found' });
+  
   res.status(204).send();
 });

@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import { PrismaClient, Priority, Severity, TaskStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+
 const db = new PrismaClient();
+
 async function main() {
   const user = await db.user.upsert({
     where: { email: 'demo@umpisa.dev' },
@@ -12,9 +14,11 @@ async function main() {
       passwordHash: await bcrypt.hash('Password123!', 12),
     },
   });
+
   const existing = await db.project.findFirst({
     where: { ownerId: user.id, name: 'Website Launch' },
   });
+  
   if (!existing)
     await db.project.create({
       data: {
@@ -46,4 +50,5 @@ async function main() {
       },
     });
 }
+
 main().finally(() => db.$disconnect());

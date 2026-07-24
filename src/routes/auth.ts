@@ -46,8 +46,10 @@ authRouter.post('/register', async (req, res) => {
 authRouter.post('/login', async (req, res) => {
   const data = loginInput.parse(req.body);
   const user = await db.user.findUnique({ where: { email: data.email } });
+
   if (!user || !(await bcrypt.compare(data.password, user.passwordHash)))
     return res.status(401).json({ message: 'Invalid email or password' });
+  
   res.json(session(user));
 });
 

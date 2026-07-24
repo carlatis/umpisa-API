@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 process.env.DATABASE_URL = 'mysql://user:pass@localhost:3306/test';
-
 process.env.JWT_SECRET = 'test-secret-at-least-sixteen';
 
 vi.mock('./db.js', () => ({ db: {} }));

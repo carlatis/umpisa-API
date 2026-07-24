@@ -9,6 +9,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   
   try {
     req.userId = (jwt.verify(token, config.JWT_SECRET) as { sub: string }).sub;
+
     next();
   } catch {
     res.status(401).json({ message: 'Invalid or expired token' });
