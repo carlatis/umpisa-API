@@ -13,6 +13,21 @@ const input = z.object({
   dueDate: z.coerce.date().nullable().optional(),
 });
 
+tasksRouter.get('/tasks', async (req, res) => {
+  const tasks = await db.task.findMany({
+    where: { project: { ownerId: req.userId } },
+    include: { project: { select: { name: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json(
+    tasks.map(({ project, ...task }) => ({
+      ...task,
+      projectName: project.name,
+    })),
+  );
+});
+
 tasksRouter.post('/projects/:projectId/tasks', async (req, res) => {
   const project = await db.project.findFirst({
     where: { id: req.params.projectId, ownerId: req.userId },
