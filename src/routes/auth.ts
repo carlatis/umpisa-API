@@ -53,9 +53,12 @@ authRouter.post('/login', async (req, res) => {
   res.json(session(user));
 });
 
-function session(user: { id: string; name: string; email: string }) {
+function session(user: { id: string; name: string; email: string; role: 'ADMIN' | 'USER' }) {
   return {
-    token: jwt.sign({}, config.JWT_SECRET, { subject: user.id, expiresIn: '8h' }),
-    user: { id: user.id, name: user.name, email: user.email },
+    token: jwt.sign({ role: user.role }, config.JWT_SECRET, {
+      subject: user.id,
+      expiresIn: '8h',
+    }),
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
   };
 }

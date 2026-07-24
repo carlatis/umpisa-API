@@ -5,8 +5,12 @@ export const analyticsRouter = Router();
 
 analyticsRouter.get('/', async (req, res) => {
   const [projects, grouped] = await Promise.all([
-    db.project.count({ where: { ownerId: req.userId } }),
-    db.task.groupBy({ by: ['status'], where: { project: { ownerId: req.userId } }, _count: true }),
+    db.project.count({ where: req.userRole === 'ADMIN' ? {} : { ownerId: req.userId } }),
+    db.task.groupBy({
+      by: ['status'],
+      where: req.userRole === 'ADMIN' ? {} : { project: { ownerId: req.userId } },
+      _count: true,
+    }),
   ]);
 
   const tasks = Object.fromEntries(grouped.map((x) => [x.status, x._count]));

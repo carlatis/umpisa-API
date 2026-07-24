@@ -36,6 +36,20 @@ describe('JWT authentication middleware', () => {
     expect(test.status).not.toHaveBeenCalled();
   });
 
+  it('sets the administrator role from a signed token', () => {
+    const token = jwt.sign({ role: 'ADMIN' }, process.env.JWT_SECRET!, {
+      subject: 'admin-1',
+      expiresIn: '1h',
+    });
+    const test = context(`Bearer ${token}`);
+
+    requireAuth(test.req, test.res, test.next);
+
+    expect(test.req.userId).toBe('admin-1');
+    expect(test.req.userRole).toBe('ADMIN');
+    expect(test.next).toHaveBeenCalledOnce();
+  });
+
   it('rejects a request without a bearer token', () => {
     const test = context();
 

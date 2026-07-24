@@ -22,6 +22,7 @@ const user = {
   id: 'user-1',
   name: 'Demo User',
   email: 'demo@umpisa.dev',
+  role: 'USER' as const,
   passwordHash: '',
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -47,6 +48,7 @@ describe('authentication routes', () => {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
     });
     expect(response.body).not.toHaveProperty('passwordHash');
 
@@ -58,6 +60,7 @@ describe('authentication routes', () => {
     const payload = jwt.verify(response.body.token, process.env.JWT_SECRET!) as jwt.JwtPayload;
     
     expect(payload.sub).toBe(user.id);
+    expect(payload.role).toBe('USER');
     expect(payload.exp).toBeGreaterThan(payload.iat!);
   });
 

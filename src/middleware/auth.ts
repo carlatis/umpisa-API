@@ -8,7 +8,10 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!token) return res.status(401).json({ message: 'Authentication required' });
   
   try {
-    req.userId = (jwt.verify(token, config.JWT_SECRET) as { sub: string }).sub;
+    const payload = jwt.verify(token, config.JWT_SECRET) as { sub: string; role?: string };
+
+    req.userId = payload.sub;
+    req.userRole = payload.role === 'ADMIN' ? 'ADMIN' : 'USER';
 
     next();
   } catch {

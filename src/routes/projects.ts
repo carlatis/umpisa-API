@@ -12,7 +12,7 @@ const projectInput = z.object({
 projectsRouter.get('/', async (req, res) =>
   res.json(
     await db.project.findMany({
-      where: { ownerId: req.userId },
+      where: req.userRole === 'ADMIN' ? {} : { ownerId: req.userId },
       include: { _count: { select: { tasks: true } } },
       orderBy: { updatedAt: 'desc' },
     }),
@@ -29,7 +29,10 @@ projectsRouter.post('/', async (req, res) =>
 
 projectsRouter.get('/:id', async (req, res) => {
   const item = await db.project.findFirst({
-    where: { id: req.params.id, ownerId: req.userId },
+    where: {
+      id: req.params.id,
+      ...(req.userRole === 'ADMIN' ? {} : { ownerId: req.userId }),
+    },
     include: { tasks: { orderBy: { createdAt: 'desc' } } },
   });
 
@@ -37,7 +40,12 @@ projectsRouter.get('/:id', async (req, res) => {
 });
 
 projectsRouter.patch('/:id', async (req, res) => {
-  const found = await db.project.findFirst({ where: { id: req.params.id, ownerId: req.userId } });
+  const found = await db.project.findFirst({
+    where: {
+      id: req.params.id,
+      ...(req.userRole === 'ADMIN' ? {} : { ownerId: req.userId }),
+    },
+  });
 
   if (!found) return res.status(404).json({ message: 'Project not found' });
 
@@ -50,7 +58,12 @@ projectsRouter.patch('/:id', async (req, res) => {
 });
 
 projectsRouter.delete('/:id', async (req, res) => {
-  const result = await db.project.deleteMany({ where: { id: req.params.id, ownerId: req.userId } });
+  const result = await db.project.deleteMany({
+    where: {
+      id: req.params.id,
+      ...(req.userRole === 'ADMIN' ? {} : { ownerId: req.userId }),
+    },
+  });
 
   res.status(result.count ? 204 : 404).send();
 });

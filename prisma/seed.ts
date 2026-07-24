@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PrismaClient, Priority, Severity, TaskStatus } from '@prisma/client';
+import { PrismaClient, Priority, Severity, TaskStatus, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const db = new PrismaClient();
@@ -17,7 +17,7 @@ async function seedProject(
   project: { name: string; description: string; tasks: SeedTask[] },
 ) {
   const existing = await db.project.findFirst({
-    where: { ownerId, name: project.name },
+    where: { name: project.name },
     select: { id: true },
   });
 
@@ -26,6 +26,7 @@ async function seedProject(
       where: { id: existing.id },
       data: {
         description: project.description,
+        ownerId,
         tasks: {
           deleteMany: {},
           create: project.tasks,
@@ -54,12 +55,14 @@ async function main() {
     update: {
       name: 'Umpisa Administrator',
       passwordHash,
+      role: UserRole.ADMIN,
       createdAt: new Date('2024-01-01T00:00:00.000Z'),
     },
     create: {
       name: 'Umpisa Administrator',
       email: 'admin@umpisa.dev',
       passwordHash,
+      role: UserRole.ADMIN,
       createdAt: new Date('2024-01-01T00:00:00.000Z'),
     },
   });
@@ -69,13 +72,32 @@ async function main() {
     update: {
       name: 'Demo User',
       passwordHash,
+      role: UserRole.USER,
       createdAt: new Date('2024-01-02T00:00:00.000Z'),
     },
     create: {
       name: 'Demo User',
       email: 'demo@umpisa.dev',
       passwordHash,
+      role: UserRole.USER,
       createdAt: new Date('2024-01-02T00:00:00.000Z'),
+    },
+  });
+
+  const reviewerUser = await db.user.upsert({
+    where: { email: 'reviewer@umpisa.dev' },
+    update: {
+      name: 'Demo Reviewer',
+      passwordHash,
+      role: UserRole.USER,
+      createdAt: new Date('2024-01-03T00:00:00.000Z'),
+    },
+    create: {
+      name: 'Demo Reviewer',
+      email: 'reviewer@umpisa.dev',
+      passwordHash,
+      role: UserRole.USER,
+      createdAt: new Date('2024-01-03T00:00:00.000Z'),
     },
   });
 
@@ -86,7 +108,7 @@ async function main() {
     },
   });
 
-  await seedProject(demoUser.id, {
+  await seedProject(reviewerUser.id, {
     name: 'Website Launch',
     description: 'Plan and deliver the new Umpisa Inc. marketing website.',
     tasks: [
