@@ -8,6 +8,7 @@ import { projectsRouter } from './routes/projects.js';
 import { tasksRouter } from './routes/tasks.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { usersRouter } from './routes/users.js';
+import { accountRouter } from './routes/account.js';
 import { requireAuth } from './middleware/auth.js';
 import { errorHandler } from './middleware/error.js';
 import { authRateLimit, corsOptions } from './middleware/security.js';
@@ -24,6 +25,7 @@ app.use('/api/projects', requireAuth, projectsRouter);
 app.use('/api', requireAuth, tasksRouter);
 app.use('/api/analytics', requireAuth, analyticsRouter);
 app.use('/api/users', requireAuth, usersRouter);
+app.use('/api/account', requireAuth, accountRouter);
 
 app.use((_req, res) => res.status(404).json({ message: 'Route not found' }));
 app.use(errorHandler);
