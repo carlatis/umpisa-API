@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
+
 import { db } from '../db.js';
 
 export const tasksRouter = Router();
@@ -13,19 +15,57 @@ const input = z.object({
   dueDate: z.coerce.date().nullable().optional(),
 });
 
-tasksRouter.get('/tasks', async (req, res) => {
-  const tasks = await db.task.findMany({
-    where: req.userRole === 'ADMIN' ? {} : { project: { ownerId: req.userId } },
-    include: { project: { select: { name: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+const taskQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
+  search: z.string().trim().max(160).default(''),
+  project: z.string().trim().optional(),
+  status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+  severity: z.enum(['MINOR', 'MAJOR', 'CRITICAL']).optional(),
+});
 
-  res.json(
-    tasks.map(({ project, ...task }) => ({
+tasksRouter.get('/tasks', async (req, res) => {
+  const { page, pageSize, search, project, status, priority, severity } = taskQuery.parse(req.query);
+  const where: Prisma.TaskWhereInput = {
+    ...(req.userRole === 'ADMIN' ? {} : { project: { ownerId: req.userId } }),
+    ...(project ? { project: { name: project, ...(req.userRole === 'ADMIN' ? {} : { ownerId: req.userId }) } } : {}),
+    ...(status ? { status } : {}),
+    ...(priority ? { priority } : {}),
+    ...(severity ? { severity } : {}),
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search } },
+            { project: { name: { contains: search } } },
+          ],
+        }
+      : {}),
+  };
+
+  const [total, tasks] = await db.$transaction([
+    db.task.count({ where }),
+    db.task.findMany({
+      where,
+      include: { project: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  res.json({
+    data: tasks.map(({ project, ...task }) => ({
       ...task,
       projectName: project.name,
     })),
-  );
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    },
+  });
 });
 
 tasksRouter.post('/projects/:projectId/tasks', async (req, res) => {
