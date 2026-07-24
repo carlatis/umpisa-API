@@ -11,6 +11,8 @@ analyticsRouter.get('/', async (req, res) => {
       name: true,
       tasks: {
         select: {
+          id: true,
+          title: true,
           status: true,
           priority: true,
           severity: true,
@@ -20,20 +22,16 @@ analyticsRouter.get('/', async (req, res) => {
     orderBy: { name: 'asc' },
   });
 
-  const allTasks = projects.flatMap((project) => project.tasks);
+  const allTasks = projects.flatMap((project) =>
+    project.tasks.map((task) => ({ ...task, projectName: project.name })),
+  );
   const count = <T>(items: T[], predicate: (item: T) => boolean) =>
     items.filter(predicate).length;
 
-  const projectSummary = projects.map((project) => ({
-    id: project.id,
-    name: project.name,
-    tasks: project.tasks.length,
-    ongoing: count(project.tasks, (task) => task.status === 'TODO'),
-    inProgress: count(project.tasks, (task) => task.status === 'IN_PROGRESS'),
-    done: count(project.tasks, (task) => task.status === 'DONE'),
-    highPriority: count(project.tasks, (task) => task.priority === 'HIGH'),
-    criticalSeverity: count(project.tasks, (task) => task.severity === 'CRITICAL'),
-  }));
+  const attentionTasks = allTasks.filter(
+    (task) =>
+      task.status !== 'DONE' && (task.priority === 'HIGH' || task.severity === 'CRITICAL'),
+  );
 
   res.json({
     projects: projects.length,
@@ -42,12 +40,7 @@ analyticsRouter.get('/', async (req, res) => {
       ongoing: count(allTasks, (task) => task.status === 'TODO'),
       inProgress: count(allTasks, (task) => task.status === 'IN_PROGRESS'),
       done: count(allTasks, (task) => task.status === 'DONE'),
-      needsAttention: count(
-        allTasks,
-        (task) =>
-          task.status !== 'DONE' &&
-          (task.priority === 'HIGH' || task.severity === 'CRITICAL'),
-      ),
+      needsAttention: attentionTasks.length,
     },
     priority: {
       low: count(allTasks, (task) => task.priority === 'LOW'),
@@ -59,6 +52,6 @@ analyticsRouter.get('/', async (req, res) => {
       major: count(allTasks, (task) => task.severity === 'MAJOR'),
       critical: count(allTasks, (task) => task.severity === 'CRITICAL'),
     },
-    projectSummary,
+    attentionTasks,
   });
 });
